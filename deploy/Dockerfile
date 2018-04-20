@@ -14,10 +14,14 @@
 
 # Builds the static Go image to execute in a Kubernetes job
 
+FROM alpine
+
 FROM scratch
 ADD out/executor /kaniko/executor
 ADD files/ca-certificates.crt /kaniko/ssl/certs/
 ADD files/docker-credential-pass /usr/local/bin/
+COPY --from=0 /bin/cat /usr/local/bin/
+COPY --from=0 /bin/busybox /usr/local/bin/
 ENV HOME /root
 ENV PATH /usr/local/bin
 ENV SSL_CERT_DIR=/kaniko/ssl/certs
