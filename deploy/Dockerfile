@@ -14,12 +14,16 @@
 
 # Builds the static Go image to execute in a Kubernetes job
 
+# need to have `cat`
 FROM alpine
+
+# need to have `nohup`
+RUN apk add --no-cache coreutils
 
 ADD out/executor /kaniko/executor
 ADD files/ca-certificates.crt /kaniko/ssl/certs/
 ADD files/docker-credential-pass /usr/local/bin/
 ENV HOME /root
-ENV PATH /bin:/usr/local/bin
+ENV PATH /bin:/usr/bin:/usr/local/bin
 ENV SSL_CERT_DIR=/kaniko/ssl/certs
 ENTRYPOINT ["/kaniko/executor"]
