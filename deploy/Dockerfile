@@ -20,6 +20,6 @@ ADD out/executor /kaniko/executor
 ADD files/ca-certificates.crt /kaniko/ssl/certs/
 ADD files/docker-credential-pass /usr/local/bin/
 ENV HOME /root
-ENV PATH /usr/local/bin
+ENV PATH /bin:/usr/local/bin
 ENV SSL_CERT_DIR=/kaniko/ssl/certs
 ENTRYPOINT ["/kaniko/executor"]
