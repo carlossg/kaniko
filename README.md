@@ -10,7 +10,7 @@ Please let us know if you have any feature requests or find any bugs!
 
 
 - [Kaniko](#kaniko)
-  - [How does kaniko work?](#how-does-kaniko-work?)
+  - [How does kaniko work?](#how-does-kaniko-work)
   - [Known Issues](#known-issues)
 - [Development](#development)
   - [kaniko Build Contexts](#kaniko-build-contexts) 
@@ -39,6 +39,8 @@ The majority of Dockerfile commands can be executed with kaniko, but we're still
 * ARG
 
 Multi-Stage Dockerfiles are also unsupported currently, but will be ready soon.
+
+kaniko also does not support building Windows containers.
 
 ## Development
 ### kaniko Build Contexts
@@ -166,7 +168,7 @@ Similar tools include:
 * [img](https://github.com/genuinetools/img)
 * [orca-build](https://github.com/cyphar/orca-build)
 * [buildah](https://github.com/projectatomic/buildah)
-* [FTL](https://github.com/GoogleContainerTools/runtimes-common/tree/master/ftl)
+* [FTL](https://github.com/GoogleCloudPlatform/runtimes-common/tree/master/ftl)
 * [Bazel rules_docker](https://github.com/bazelbuild/rules_docker)
 
 All of these tools build container images with different approaches.
