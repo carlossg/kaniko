@@ -5,9 +5,6 @@ kaniko is a tool to build container images from a Dockerfile, inside a container
 kaniko doesn't depend on a Docker daemon and executes each command within a Dockerfile completely in userspace.
 This enables building container images in environments that can't easily or securely run a Docker daemon, such as a standard Kubernetes cluster.
 
-We're currently in the process of building kaniko, so as of now it isn't production ready.
-Please let us know if you have any feature requests or find any bugs!
-
 
 - [Kaniko](#kaniko)
   - [How does kaniko work?](#how-does-kaniko-work)
@@ -16,6 +13,7 @@ Please let us know if you have any feature requests or find any bugs!
 - [Development](#development)
   - [kaniko Build Contexts](#kaniko-build-contexts)
   - [Running kaniko in a Kubernetes cluster](#running-kaniko-in-a-kubernetes-cluster)
+  - [Running kaniko in gVisor](#running-kaniko-in-gvisor)
   - [Running kaniko in Google Container Builder](#running-kaniko-in-google-container-builder)
   - [Running kaniko locally](#running-kaniko-locally)
   - [Pushing to Different Registries](#pushing-to-different-registries)
@@ -105,6 +103,21 @@ spec:
 
 This example pulls the build context from a GCS bucket.
 To use a local directory build context, you could consider using configMaps to mount in small build contexts.
+
+### Running kaniko in gVisor
+
+Running kaniko in [gVisor](https://github.com/google/gvisor) provides an additional security boundary.
+You will need to add the `--force` flag to run kaniko in gVisor, since currently there isn't a way to determine whether or not a container is running in gVisor.
+
+```shell
+docker run --runtime=runsc -v $(pwd):/workspace -v ~/.config:/root/.config \
+gcr.io/kaniko-project/executor:latest \
+--dockerfile=<path to Dockerfile> --context=/workspace \
+--destination=gcr.io/my-repo/my-image --force
+```
+
+We pass in `--runtime=runsc` to use gVisor.
+This example mounts the current directory to `/workspace` for the build context and the `~/.config` directory for GCR credentials.
 
 ### Running kaniko in Google Container Builder
 To run kaniko in GCB, add it to your build config as a build step:

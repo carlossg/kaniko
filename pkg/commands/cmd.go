@@ -17,11 +17,12 @@ limitations under the License.
 package commands
 
 import (
-	"github.com/GoogleContainerTools/kaniko/pkg/dockerfile"
 	"strings"
 
+	"github.com/GoogleContainerTools/kaniko/pkg/dockerfile"
+
 	"github.com/docker/docker/builder/dockerfile/instructions"
-	"github.com/google/go-containerregistry/v1"
+	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,6 +51,7 @@ func (c *CmdCommand) ExecuteCommand(config *v1.Config, buildArgs *dockerfile.Bui
 
 	logrus.Infof("Replacing CMD in config with %v", newCommand)
 	config.Cmd = newCommand
+	config.ArgsEscaped = true
 	return nil
 }
 

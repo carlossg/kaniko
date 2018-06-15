@@ -27,15 +27,13 @@ import (
 
 	"github.com/GoogleContainerTools/kaniko/pkg/snapshot"
 
-	"github.com/google/go-containerregistry/v1/empty"
-
-	"github.com/google/go-containerregistry/v1/tarball"
-
-	"github.com/google/go-containerregistry/authn"
-	"github.com/google/go-containerregistry/name"
-	"github.com/google/go-containerregistry/v1"
-	"github.com/google/go-containerregistry/v1/mutate"
-	"github.com/google/go-containerregistry/v1/remote"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/tarball"
 
 	"io/ioutil"
 
@@ -65,7 +63,10 @@ func DoBuild(dockerfilePath, srcContext, snapshotMode string, args []string) (na
 		return nil, nil, err
 	}
 	for index, stage := range stages {
-		baseImage := stage.BaseName
+		baseImage, err := util.ResolveEnvironmentReplacement(stage.BaseName, args, false)
+		if err != nil {
+			return nil, nil, err
+		}
 		finalStage := index == len(stages)-1
 		// Unpack file system to root
 		logrus.Infof("Unpacking filesystem of %s...", baseImage)
@@ -99,6 +100,9 @@ func DoBuild(dockerfilePath, srcContext, snapshotMode string, args []string) (na
 			return nil, nil, err
 		}
 		imageConfig, err := sourceImage.ConfigFile()
+		if baseImage == constants.NoBaseImage {
+			imageConfig.Config.Env = constants.ScratchEnvVars
+		}
 		if err != nil {
 			return nil, nil, err
 		}
@@ -170,26 +174,32 @@ func DoBuild(dockerfilePath, srcContext, snapshotMode string, args []string) (na
 	return nil, nil, err
 }
 
-func DoPush(ref name.Reference, image v1.Image, destination, tarPath string) error {
-	// Push the image
-	destRef, err := name.NewTag(destination, name.WeakValidation)
-	if err != nil {
-		return err
-	}
+func DoPush(ref name.Reference, image v1.Image, destinations []string, tarPath string) error {
+	// continue pushing unless an error occurs
+	for _, destination := range destinations {
+		// Push the image
+		destRef, err := name.NewTag(destination, name.WeakValidation)
+		if err != nil {
+			return err
+		}
 
-	if tarPath != "" {
-		return tarball.WriteToFile(tarPath, destRef, image, nil)
-	}
+		if tarPath != "" {
+			return tarball.WriteToFile(tarPath, destRef, image, nil)
+		}
 
-	wo := remote.WriteOptions{}
-	if ref != nil {
-		wo.MountPaths = []name.Repository{ref.Context()}
+		pushAuth, err := authn.DefaultKeychain.Resolve(destRef.Context().Registry)
+		if err != nil {
+			return err
+		}
+
+		wo := remote.WriteOptions{}
+		err = remote.Write(destRef, image, pushAuth, http.DefaultTransport, wo)
+		if err != nil {
+			logrus.Error(fmt.Errorf("Failed to push to destination %s", destination))
+			return err
+		}
 	}
-	pushAuth, err := authn.DefaultKeychain.Resolve(destRef.Context().Registry)
-	if err != nil {
-		return err
-	}
-	return remote.Write(destRef, image, pushAuth, http.DefaultTransport, wo)
+	return nil
 }
 func saveStageDependencies(index int, stages []instructions.Stage, buildArgs *dockerfile.BuildArgs) error {
 	// First, get the files in this stage later stages will need
@@ -251,5 +261,8 @@ func resolveOnBuild(stage *instructions.Stage, config *v1.Config) error {
 	// Append to the beginning of the commands in the stage
 	stage.Commands = append(cmds, stage.Commands...)
 	logrus.Infof("Executing %v build triggers", len(cmds))
+
+	// Blank out the Onbuild command list for this image
+	config.OnBuild = nil
 	return nil
 }

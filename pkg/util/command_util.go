@@ -17,17 +17,19 @@ limitations under the License.
 package util
 
 import (
-	"github.com/docker/docker/builder/dockerfile/instructions"
-	"github.com/docker/docker/builder/dockerfile/parser"
-	"github.com/docker/docker/builder/dockerfile/shell"
-	"github.com/google/go-containerregistry/v1"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
+
+	"github.com/docker/docker/builder/dockerfile/instructions"
+	"github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/docker/docker/builder/dockerfile/shell"
+	"github.com/google/go-containerregistry/pkg/v1"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ResolveEnvironmentReplacementList resolves a list of values by calling resolveEnvironmentReplacement
@@ -272,4 +274,44 @@ Loop:
 	}
 	config.Env = envArray
 	return nil
+}
+
+func GetUserFromUsername(userStr string, groupStr string) (string, string, error) {
+	// Lookup by username
+	userObj, err := user.Lookup(userStr)
+	if err != nil {
+		if _, ok := err.(user.UnknownUserError); ok {
+			// Lookup by id
+			userObj, err = user.LookupId(userStr)
+			if err != nil {
+				return "", "", err
+			}
+		} else {
+			return "", "", err
+		}
+	}
+
+	// Same dance with groups
+	var group *user.Group
+	if groupStr != "" {
+		group, err = user.LookupGroup(groupStr)
+		if err != nil {
+			if _, ok := err.(user.UnknownGroupError); ok {
+				group, err = user.LookupGroupId(groupStr)
+				if err != nil {
+					return "", "", err
+				}
+			} else {
+				return "", "", err
+			}
+		}
+	}
+
+	uid := userObj.Uid
+	gid := ""
+	if group != nil {
+		gid = group.Gid
+	}
+
+	return uid, gid, nil
 }

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-containerregistry/v1"
+	"github.com/google/go-containerregistry/pkg/v1"
 
 	"github.com/GoogleContainerTools/kaniko/pkg/constants"
 	"github.com/sirupsen/logrus"
@@ -128,6 +128,12 @@ func DeleteFilesystem() error {
 
 // ChildDirInWhitelist returns true if there is a child file or directory of the path in the whitelist
 func ChildDirInWhitelist(path, directory string) bool {
+	for _, d := range constants.KanikoBuildFiles {
+		dirPath := filepath.Join(directory, d)
+		if HasFilepathPrefix(dirPath, path) {
+			return true
+		}
+	}
 	for _, d := range whitelist {
 		dirPath := filepath.Join(directory, d)
 		if HasFilepathPrefix(dirPath, path) {
